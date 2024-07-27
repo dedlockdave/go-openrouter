@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	utils "github.com/casibase/go-openrouter/internal"
 	"io"
 	"net/http"
+
+	utils "github.com/dedlockdave/go-openrouter/internal"
 )
 
 type Client struct {
