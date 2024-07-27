@@ -7,6 +7,7 @@ const (
 	OpenaiGpt35Turbo16k      = "openai/gpt-3.5-turbo-16k"
 	OpenaiGpt4               = "openai/gpt-4"
 	OpenaiGpt432K            = "openai/gpt-4-32k"
+	OpenaiGpt4oMini          = "openai/gpt-4o-mini"
 	AnthropicClaude2         = "anthropic/claude-2"
 	AnthropicClaudeInstantV1 = "anthropic/claude-instant-v1"
 	MetaLlamaLlama213bChat   = "meta-llama/llama-2-13b-chat"
@@ -29,6 +30,7 @@ var (
 		GooglePalm2ChatBison:     true,
 		OpenaiGpt35Turbo:         true,
 		OpenaiGpt35Turbo16k:      true,
+		OpenaiGpt4oMini:          true,
 		OpenaiGpt4:               true,
 		OpenaiGpt432K:            true,
 		AnthropicClaude2:         true,
@@ -37,6 +39,8 @@ var (
 		MetaLlamaLlama270bChat:   true,
 	}
 	wrapperModels = map[string]string{
+		OpenaiGpt4oMini: OpenaiGpt4oMini,
+
 		Palm2CodeChatBison: GooglePalm2CodeChatBison,
 		Palm2ChatBison:     GooglePalm2ChatBison,
 		Gpt35Turbo:         OpenaiGpt35Turbo,

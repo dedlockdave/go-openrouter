@@ -3,6 +3,7 @@ package openrouter
 import (
 	"bufio"
 	"context"
+
 	utils "github.com/casibase/go-openrouter/internal"
 )
 
