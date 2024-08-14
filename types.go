@@ -55,7 +55,8 @@ var (
 )
 
 func checkSupportsModel(model string) bool {
-	return enableModels[model]
+	return true
+	// return enableModels[model]
 }
 
 type ChatCompletionMessage struct {
