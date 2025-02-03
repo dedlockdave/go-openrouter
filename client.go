@@ -1,6 +1,7 @@
 package openrouter
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -45,13 +46,35 @@ func (c *Client) sendRequest(req *http.Request, v any) error {
 
 	res, err := c.config.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer res.Body.Close()
 
-	if isFailureStatusCode(res) {
+	// Handle non-200 responses
+	if res.StatusCode != http.StatusOK {
 		return c.handleErrorResp(res)
 	}
+
+	// Check for empty response body
+	if res.Body == nil {
+		return fmt.Errorf("empty response body")
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check if response contains an error
+	var errorResp ErrorResponse
+	if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
+		if errorResp.Error != nil && errorResp.Error.Message != "" {
+			return fmt.Errorf("API error: %s", errorResp.Error.Message)
+		}
+	}
+
+	// Reset the body for subsequent reads
+	res.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	return decodeResponse(res.Body, v)
 }

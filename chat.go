@@ -2,7 +2,9 @@ package openrouter
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -42,5 +44,13 @@ func (c *Client) CreateChatCompletion(
 	}
 
 	err = c.sendRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	bs, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+s", bs)
 	return response, err
 }
