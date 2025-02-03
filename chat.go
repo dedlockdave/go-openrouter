@@ -27,22 +27,20 @@ func (c *Client) CreateChatCompletion(
 	request *ChatCompletionRequest,
 ) (response *ChatCompletionResponse, err error) {
 	if request.Stream {
-		err = ErrChatCompletionStreamNotSupported
-		return
+		return nil, ErrChatCompletionStreamNotSupported
 	}
 
 	urlSuffix := "/chat/completions"
 	request.Model = wrapperModels[request.Model]
 	if !checkSupportsModel(request.Model) {
-		err = ErrCompletionUnsupportedModel
-		return
+		return nil, ErrCompletionUnsupportedModel
 	}
 
 	req, err := c.requestBuilder.Build(ctx, http.MethodPost, c.fullURL(urlSuffix), request)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	err = c.sendRequest(req, &response)
-	return
+	return response, err
 }
