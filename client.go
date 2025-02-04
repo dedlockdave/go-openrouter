@@ -45,6 +45,7 @@ const (
 var retryableErrors = []string{
 	"Overloaded",
 	"Internal Server Error",
+	"Provider returned error",
 }
 
 func shouldRetry(err error) bool {
@@ -85,10 +86,10 @@ func (c *Client) sendRequest(req *http.Request, v any) error {
 			return nil
 		}
 
-		lastErr = err
-		if !shouldRetry(err) {
-			return err
-		}
+		// lastErr = err
+		// if !shouldRetry(err) {
+		// 	return err
+		// }
 
 		if attempt < maxRetries {
 			log.Printf("Request failed with error: %v. Retrying attempt %d/%d", err, attempt+1, maxRetries)
