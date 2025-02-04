@@ -20,7 +20,6 @@ func (c *Client) CreateChatCompletionStream(
 	request *ChatCompletionRequest,
 ) (stream *ChatCompletionStream, err error) {
 	urlSuffix := "/chat/completions"
-	request.Model = wrapperModels[request.Model]
 	if !checkSupportsModel(request.Model) {
 		err = ErrCompletionUnsupportedModel
 		return

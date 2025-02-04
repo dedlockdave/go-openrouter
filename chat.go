@@ -2,9 +2,7 @@ package openrouter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -33,7 +31,6 @@ func (c *Client) CreateChatCompletion(
 	}
 
 	urlSuffix := "/chat/completions"
-	request.Model = wrapperModels[request.Model]
 	if !checkSupportsModel(request.Model) {
 		return nil, ErrCompletionUnsupportedModel
 	}
@@ -47,10 +44,5 @@ func (c *Client) CreateChatCompletion(
 	if err != nil {
 		return nil, err
 	}
-	bs, err := json.MarshalIndent(response, "", "    ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%+s", bs)
 	return response, err
 }

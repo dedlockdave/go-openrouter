@@ -6,7 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"math"
+	"math/rand"
 	"net/http"
+	"strings"
+	"time"
 
 	utils "github.com/dedlockdave/go-openrouter/internal"
 )
@@ -32,7 +37,68 @@ func NewClientWithConfig(config ClientConfig) *Client {
 	}
 }
 
+const (
+	maxRetries     = 3
+	initialBackoff = 1 * time.Second
+)
+
+var retryableErrors = []string{
+	"Overloaded",
+	"Internal Server Error",
+}
+
+func shouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errMsg := err.Error()
+	for _, retryableErr := range retryableErrors {
+		if strings.Contains(errMsg, retryableErr) {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) sendRequest(req *http.Request, v any) error {
+	var lastErr error
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Calculate exponential backoff with jitter
+			backoff := float64(initialBackoff) * math.Pow(2, float64(attempt-1))
+			jitter := (rand.Float64()*0.5 + 0.5) // 50%-150% of base backoff
+			sleepDuration := time.Duration(backoff * jitter)
+			time.Sleep(sleepDuration)
+
+			// Clone the request for retry since the original body may have been consumed
+			var err error
+			req, err = cloneRequest(req)
+			if err != nil {
+				return fmt.Errorf("failed to clone request for retry: %w", err)
+			}
+		}
+
+		err := c.doRequest(req, v)
+		if err == nil {
+			return nil
+		}
+
+		lastErr = err
+		if !shouldRetry(err) {
+			return err
+		}
+
+		if attempt < maxRetries {
+			log.Printf("Request failed with error: %v. Retrying attempt %d/%d", err, attempt+1, maxRetries)
+		}
+	}
+
+	return fmt.Errorf("all retry attempts failed, last error: %w", lastErr)
+}
+
+func (c *Client) doRequest(req *http.Request, v any) error {
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 
 	// Check whether Content-Type is already set, Upload Files API requires
@@ -151,4 +217,20 @@ func (c *Client) handleErrorResp(resp *http.Response) error {
 
 	errRes.Error.HTTPStatusCode = resp.StatusCode
 	return errRes.Error
+}
+
+func cloneRequest(req *http.Request) (*http.Request, error) {
+	clone := req.Clone(req.Context())
+
+	// If there's a body, we need to clone it
+	if req.Body != nil {
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read original request body: %w", err)
+		}
+		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))   // Restore original body
+		clone.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Set cloned body
+	}
+
+	return clone, nil
 }
