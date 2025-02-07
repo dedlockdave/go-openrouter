@@ -132,7 +132,7 @@ func (c *Client) doRequest(req *http.Request, v any) error {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Check if response contains an error
+	// First try to unmarshal as error response
 	var errorResp ErrorResponse
 	if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
 		if errorResp.Error != nil && errorResp.Error.Message != "" {
@@ -140,10 +140,23 @@ func (c *Client) doRequest(req *http.Request, v any) error {
 		}
 	}
 
-	// Reset the body for subsequent reads
-	res.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	// If v is nil, we don't need to decode anything
+	if v == nil {
+		return nil
+	}
 
-	return decodeResponse(res.Body, v)
+	// Handle string responses
+	if result, ok := v.(*string); ok {
+		*result = string(bodyBytes)
+		return nil
+	}
+
+	// Try to decode JSON response
+	if err := json.Unmarshal(bodyBytes, v); err != nil {
+		return fmt.Errorf("failed to decode response: %w, body: %s", err, string(bodyBytes))
+	}
+
+	return nil
 }
 
 func (c *Client) setCommonHeaders(req *http.Request) {
@@ -154,26 +167,6 @@ func (c *Client) setCommonHeaders(req *http.Request) {
 
 func isFailureStatusCode(resp *http.Response) bool {
 	return resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest
-}
-
-func decodeResponse(body io.Reader, v any) error {
-	if v == nil {
-		return nil
-	}
-
-	if result, ok := v.(*string); ok {
-		return decodeString(body, result)
-	}
-	return json.NewDecoder(body).Decode(v)
-}
-
-func decodeString(body io.Reader, output *string) error {
-	b, err := io.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	*output = string(b)
-	return nil
 }
 
 // fullURL returns full URL for request.
